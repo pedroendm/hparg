@@ -8,7 +8,7 @@ int main(void)
 
     Graphics::setup(&g);
 
-    while (Graphics::activity());
+    Graphics::activity();
 
     Graphics::close();
 

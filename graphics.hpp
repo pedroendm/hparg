@@ -5,6 +5,6 @@
 class Graphics {
     public:
         static void setup(Graph* graph);
-        static bool activity();
+        static void activity();
         static void close();
 };

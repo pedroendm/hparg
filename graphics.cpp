@@ -23,8 +23,8 @@ static std::pair<int, int> prev_position_node;
 
 // Node in which the mouse was over when clicked down.
 // Note that can be nullptr, if the mouse wasn't over a node.
-// Used to passed info from event SDL_MOUSEBUTTONDOWN to SDL_MOUSEBUTTONUP 
-static Node* clicked;
+// Used to passed info from event SDL_MOUSEBUTTONDOWN to SDL_MOUSEBUTTONUP
+static Node *clicked;
 
 // 0 for nothing, 'l' for left, 'r' for right
 static char button_pressed = 0;
@@ -48,24 +48,46 @@ void draw_background()
     SDL_RenderClear(renderer);
 }
 
-static inline void draw_node(Node* np, int r, int g, int b, int a) 
+static inline void draw_node(Node *np, int r, int g, int b, int a)
 {
     filledCircleRGBA(renderer, np->x, np->y, np->r, r, g, b, a);
+}
+
+static inline void draw_arc(Node *f, Node *t, int r, int g, int b, int a)
+{
+    // Close point in the frontier of the node f to the center of the node t
+    double vXf = t->x - f->x;
+    double vYf = t->y - f->y;
+
+    double magVf = sqrt(vXf * vXf + vYf * vYf);
+
+    double pf_x = f->x + ((vXf / magVf) * f->r);
+    double pf_y = f->y + ((vYf / magVf) * f->r);
+
+    // Close point in the frontier of the node f to the center of the node t
+    double vXt = f->x - t->x;
+    double vYt = f->y - t->y;
+    double magVt = sqrt(vXt * vXt + vYt * vYt);
+
+    double pt_x = t->x + ((vXt / magVt) * t->r);
+    double pt_y = t->y + ((vYt / magVt) * t->r);
+
+    // Draw line
+    lineRGBA(renderer, pf_x, pf_y, pt_x, pt_y, r, g, b, a);
+
+    // TODO: Finish arrow shape 
 }
 
 void draw_graph()
 {
     for (auto np : g->nodes)
     {
-        // draw the node
         draw_node(np, 108, 159, 206, 255);
 
-        // draw the label
         characterRGBA(renderer, np->x, np->y, np->l, 0, 0, 0, 255);
 
-        // draw the arcs
-        for (auto sp : np->adjacents)
-            lineRGBA(renderer, np->x, np->y, sp->x, sp->y,108, 159, 206, 255);
+        for (auto t : np->adjacents)
+            draw_arc(np, t, 108, 159, 206, 255);
     }
 }
 
@@ -74,9 +96,6 @@ void draw_selected()
     for (auto np : selected)
         filledCircleRGBA(renderer, np->x, np->y, np->r, 255, 219, 88, 200);
 }
-
-
-
 
 void draw_all()
 {
@@ -91,14 +110,16 @@ void draw_all()
     SDL_RenderPresent(renderer);
 }
 
-bool valid_move(Node* np)
+bool valid_move(Node *np)
 {
-     for(auto p : g->nodes) {
-        if(p != np) {
+    for (auto p : g->nodes)
+    {
+        if (p != np)
+        {
             int lb = (np->r - p->r) * (np->r - p->r);
             int ub = (np->r + p->r) * (np->r + p->r);
             int it = ((np->x - p->x) * (np->x - p->x)) + ((np->y - p->y) * (np->y - p->y));
-            if(lb <= it && ub >= it)
+            if (lb <= it && ub >= it)
                 return false;
         }
     }
@@ -128,191 +149,195 @@ void Graphics::setup(Graph *graph)
     draw_all();
 }
 
-bool Graphics::activity()
+void Graphics::activity()
 {
+    bool running = true;
+
     SDL_Event event;
-
-    if (SDL_PollEvent(&event))
+    while (running)
     {
-        switch (event.type)
+        while (SDL_PollEvent(&event))
         {
-        case SDL_QUIT:
-            return false;
-
-        case SDL_MOUSEBUTTONDOWN:
-        {
-
-            int x, y;
-            SDL_GetMouseState(&x, &y);
-
-            clicked= g->get_node(x, y);
-            
-            // Left click
-            if (event.button.button == SDL_BUTTON_LEFT)
-            { 
-                button_pressed = 'l';
-
-                // Clicked on a node
-                if (clicked)
-                {
-                    prev_position_node.first = clicked->x;
-                    prev_position_node.second = clicked->y;
-                }
-                
-            }
-            // Right click
-            else 
-                button_pressed = 'r';
-
-            break;
-        }
-
-        case SDL_MOUSEMOTION:
-        {
-            // Pressed the left button ...
-            if (button_pressed == 'l')
+            switch (event.type)
             {
-                // ... on a node
-                if (clicked)
-                {
-                    SDL_GetMouseState(&clicked->x, &clicked->y);
-                    
-                    draw_background();
-                    
-                    draw_graph();
-
-                    draw_selected();
-
-                    if(valid_move(clicked)) 
-                        draw_node(clicked, 189, 236, 182, 255);
-                    else
-                        draw_node(clicked, 180, 50, 30, 255);
-                    
-                    SDL_RenderPresent(renderer);
-                }
-                    
-            }
-            
-            break;
-        }
-
-        case SDL_MOUSEBUTTONUP:
-        {
-            int x, y;
-            SDL_GetMouseState(&x, &y);
-
-            // If the click was a left click...
-            if (event.button.button == SDL_BUTTON_LEFT)
+            case SDL_QUIT:
             {
-                // on a node...
-                if (clicked)
-                {
-                    clicked->x = x;
-                    clicked->y = y;
+                running = false;
+                break;
+            }
 
-                    // See if the final position (after moving) is valid
-                    // if not, reset initial position
-                    if (!valid_move(clicked))
+            case SDL_MOUSEBUTTONDOWN:
+            {
+
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+
+                clicked = g->get_node(x, y);
+
+                // Left click
+                if (event.button.button == SDL_BUTTON_LEFT)
+                {
+                    button_pressed = 'l';
+
+                    // Clicked on a node
+                    if (clicked)
                     {
-                        clicked->x = prev_position_node.first;
-                        clicked->y = prev_position_node.second;
+                        prev_position_node.first = clicked->x;
+                        prev_position_node.second = clicked->y;
                     }
-
-                    draw_all();
                 }
-                // on the background
+                // Right click
                 else
-                {   
-                    // If there's no node selected, just make a new node where was clicked
-                    if (selected.empty())
-                        g->add_node(x, y, 40);
-                    // Otherwise, clean the selected set
-                    else 
-                        selected.clear();
+                    button_pressed = 'r';
 
-                    draw_all();
-                }
+                break;
             }
-            // If the click was a right click...
-            else
-            {
-                Node* up = g->get_node(x, y);
 
-                // ... and was a node
-                if(clicked) {
-                    // Released right-button on a node
-                    if(up) {
-                        // Click node == Release node, then add it to the selected set
-                        if(clicked == up)
-                            add_to_selected(up);
-                        // Click node != Release node, then add an arc from click to release node
-                        else 
-                            g->add_arc(clicked, up);
-                        
+            case SDL_MOUSEMOTION:
+            {
+                // Pressed the left button ...
+                if (button_pressed == 'l')
+                {
+                    // ... on a node
+                    if (clicked)
+                    {
+                        SDL_GetMouseState(&clicked->x, &clicked->y);
+
+                        draw_background();
+
+                        draw_graph();
+
+                        draw_selected();
+
+                        if (valid_move(clicked))
+                            draw_node(clicked, 189, 236, 182, 255);
+                        else
+                            draw_node(clicked, 180, 50, 30, 255);
+
+                        SDL_RenderPresent(renderer);
+                    }
+                }
+
+                break;
+            }
+
+            case SDL_MOUSEBUTTONUP:
+            {
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+
+                // If the click was a left click...
+                if (event.button.button == SDL_BUTTON_LEFT)
+                {
+                    // on a node...
+                    if (clicked)
+                    {
+                        clicked->x = x;
+                        clicked->y = y;
+
+                        // See if the final position (after moving) is valid
+                        // if not, reset initial position
+                        if (!valid_move(clicked))
+                        {
+                            clicked->x = prev_position_node.first;
+                            clicked->y = prev_position_node.second;
+                        }
+
                         draw_all();
                     }
-                    // Released right-button on the background (CARE can be an arc, latter on)
-                    // do nothing
-                    
+                    // on the background
+                    else
+                    {
+                        // If there's no node selected, just make a new node where was clicked
+                        if (selected.empty())
+                            g->add_node(x, y, 40);
+                        // Otherwise, clean the selected set
+                        else
+                            selected.clear();
+
+                        draw_all();
+                    }
                 }
-                // If clicked on the background, do nothing. (Maybe a missclick)
+                // If the click was a right click...
+                else
+                {
+                    Node *up = g->get_node(x, y);
+
+                    // ... and was a node
+                    if (clicked)
+                    {
+                        // Released right-button on a node
+                        if (up)
+                        {
+                            // Click node == Release node, then add it to the selected set
+                            if (clicked == up)
+                                add_to_selected(up);
+                            // Click node != Release node, then add an arc from click to release node
+                            else
+                                g->add_arc(clicked, up);
+
+                            draw_all();
+                        }
+                        // Released right-button on the background (CARE can be an arc, latter on)
+                        // do nothing
+                    }
+                    // If clicked on the background, do nothing. (Maybe a missclick)
+                }
+
+                // Reset
+                clicked = nullptr;
+
+                break;
             }
 
-            // Reset
-            clicked = nullptr;
-
-            break;
-        }
-
-        case SDL_KEYDOWN:
-        {
-            switch (event.key.keysym.sym)
+            case SDL_KEYDOWN:
             {
-            case SDLK_BACKSPACE:
-            {
-                if (!selected.empty())
+                switch (event.key.keysym.sym)
                 {
-                    for (auto np : selected)
-                        g->remove_node(np);
+                case SDLK_BACKSPACE:
+                {
+                    if (!selected.empty())
+                    {
+                        for (auto np : selected)
+                            g->remove_node(np);
+                        selected.clear();
+                        draw_all();
+                    }
+                    break;
+                }
+
+                default:
+                {
+                    if (selected.size() == 1 && isalpha(event.key.keysym.sym))
+                        g->set_label(selected[0], event.key.keysym.sym);
+
                     selected.clear();
                     draw_all();
+                    break;
+                }
+                }
+
+                break;
+            }
+
+            case SDL_WINDOWEVENT:
+            {
+                switch (event.window.event)
+                {
+                case SDL_WINDOWEVENT_RESIZED:
+                {
+                    SDL_GetWindowSize(window, &window_width, &window_height);
+
+                    draw_all();
+
+                    break;
+                }
                 }
                 break;
             }
-
-            default:
-            {
-                if (selected.size() == 1 && isalpha(event.key.keysym.sym))
-                    g->set_label(selected[0], event.key.keysym.sym);
-
-                selected.clear();
-                draw_all();
-                break;
             }
-            }
-
-            break;
-        }
-
-        case SDL_WINDOWEVENT:
-        {
-            switch (event.window.event)
-            {
-            case SDL_WINDOWEVENT_RESIZED:
-            {                
-                SDL_GetWindowSize(window, &window_width, &window_height);
-            
-                draw_all();
-                
-                break;
-            }
-            }
-            break;
-        }
         }
     }
-
-    return true;
 }
 
 void Graphics::close()
