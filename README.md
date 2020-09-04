@@ -21,6 +21,8 @@
 As said in the description, the purpose of this project is to give an intuitive and, most important, useful GUI to interact with graphs.
 By interact, we mean construct, adjust and apply some classic algorithms on the graphs, with a very user-friendly GUI.
 
+This project started on September 1st, 2020.
+
 ### Built With
 * SDL2
 * SDL2_gfx

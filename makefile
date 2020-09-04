@@ -4,7 +4,7 @@ DEPS = graph.hpp node.hpp graphics.hpp
 LIBS = -lSDL2 -lSDL2_gfx
 OBJ = main.o graph.o node.o graphics.o 
 
-%.o: %.c $(DEPS)
+%.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 hparg: $(OBJ)
