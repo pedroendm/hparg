@@ -15,10 +15,10 @@
 
 ## About The Project
 <p align="center">
-<img src=images/screenshot.png>
+<img src=screenshot.png>
 </p>
 
-As said in the start, the purpose of this project is to give an intuitive and, most important, useful GUI to interact with graphs.
+As said in the description, the purpose of this project is to give an intuitive and, most important, useful GUI to interact with graphs.
 By interact, we mean construct, adjust and apply some classic algorithms on the graphs, with a very user-friendly GUI.
 
 ### Built With
@@ -45,7 +45,7 @@ git clone https://github.com/pedroendm/hparg.git
 ```
 2. Compile 
 ```sh
-make all
+make
 ```
 3. Run
 ```sh

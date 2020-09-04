@@ -1,12 +1,14 @@
-OBJS = main.cpp graphics.cpp graph.cpp node.cpp
-
 CC = g++
+CFLAGS = -std=c++17
+DEPS = graph.hpp node.hpp graphics.hpp
+LIBS = -lSDL2 -lSDL2_gfx
+OBJ = main.o graph.o node.o graphics.o 
 
-COMPILER_FLAGS = -std=c++17
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
-LINKER_FLAGS = -lSDL2 -lSDL2_gfx
+hparg: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
-OBJ_NAME = hparg
-
-all : $(OBJS)
-	$(CC) $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
+clean:
+	rm -f *.o
