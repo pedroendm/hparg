@@ -6,7 +6,8 @@ int main(void)
 
     Graph g;
 
-    Graphics::setup(&g);
+    if(!Graphics::init(g))
+        return 1;
 
     Graphics::activity();
 

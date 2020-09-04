@@ -34,7 +34,7 @@ static std::vector<Node *> selected;
 
 // SELECTED SET
 
-void add_to_selected(Node *np)
+static inline void add_to_selected(Node *np)
 {
     if (std::find(selected.begin(), selected.end(), np) == selected.end())
         selected.push_back(np);
@@ -42,7 +42,7 @@ void add_to_selected(Node *np)
 
 // DRAWING
 
-void draw_background()
+static inline void draw_background()
 {
     SDL_SetRenderDrawColor(renderer, 230, 230, 240, 97);
     SDL_RenderClear(renderer);
@@ -64,7 +64,7 @@ static inline void draw_arc(Node *f, Node *t, int r, int g, int b, int a)
     double pf_x = f->x + ((vXf / magVf) * f->r);
     double pf_y = f->y + ((vYf / magVf) * f->r);
 
-    // Close point in the frontier of the node f to the center of the node t
+    // Close point in the frontier of the node t to the center of the node f
     double vXt = f->x - t->x;
     double vYt = f->y - t->y;
     double magVt = sqrt(vXt * vXt + vYt * vYt);
@@ -75,10 +75,10 @@ static inline void draw_arc(Node *f, Node *t, int r, int g, int b, int a)
     // Draw line
     lineRGBA(renderer, pf_x, pf_y, pt_x, pt_y, r, g, b, a);
 
-    // TODO: Finish arrow shape 
+    // TODO: Finish arrow shape
 }
 
-void draw_graph()
+static inline void draw_graph()
 {
     for (auto np : g->nodes)
     {
@@ -91,22 +91,23 @@ void draw_graph()
     }
 }
 
-void draw_selected()
+static inline void draw_selected()
 {
     for (auto np : selected)
         filledCircleRGBA(renderer, np->x, np->y, np->r, 255, 219, 88, 200);
 }
 
-void draw_all()
+static inline void draw_all()
 {
     draw_background();
 
-    if (g != nullptr)
-    {
-        draw_graph();
-        draw_selected();
-    }
+    draw_graph();
 
+    draw_selected();
+}
+
+static inline void refresh()
+{
     SDL_RenderPresent(renderer);
 }
 
@@ -128,25 +129,29 @@ bool valid_move(Node *np)
 
 // Interface functions
 
-void Graphics::setup(Graph *graph)
+bool Graphics::init(Graph &graph)
 {
-    g = graph;
+    g = &graph;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't initialize SDL: %s", SDL_GetError());
-        exit(3);
+        return false;
     }
 
     if (SDL_CreateWindowAndRenderer(window_width, window_height, SDL_WINDOW_RESIZABLE, &window, &renderer))
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s", SDL_GetError());
-        exit(3);
+        return false;
     }
 
     SDL_SetWindowTitle(window, "hparg");
 
     draw_all();
+
+    refresh();
+
+    return true;
 }
 
 void Graphics::activity()
@@ -203,18 +208,14 @@ void Graphics::activity()
                     {
                         SDL_GetMouseState(&clicked->x, &clicked->y);
 
-                        draw_background();
-
-                        draw_graph();
-
-                        draw_selected();
+                        draw_all();
 
                         if (valid_move(clicked))
                             draw_node(clicked, 189, 236, 182, 255);
                         else
                             draw_node(clicked, 180, 50, 30, 255);
 
-                        SDL_RenderPresent(renderer);
+                        refresh();
                     }
                 }
 
@@ -242,8 +243,6 @@ void Graphics::activity()
                             clicked->x = prev_position_node.first;
                             clicked->y = prev_position_node.second;
                         }
-
-                        draw_all();
                     }
                     // on the background
                     else
@@ -254,9 +253,11 @@ void Graphics::activity()
                         // Otherwise, clean the selected set
                         else
                             selected.clear();
-
-                        draw_all();
                     }
+
+                    draw_all();
+
+                    refresh();
                 }
                 // If the click was a right click...
                 else
@@ -277,6 +278,8 @@ void Graphics::activity()
                                 g->add_arc(clicked, up);
 
                             draw_all();
+
+                            refresh();
                         }
                         // Released right-button on the background (CARE can be an arc, latter on)
                         // do nothing
@@ -300,8 +303,12 @@ void Graphics::activity()
                     {
                         for (auto np : selected)
                             g->remove_node(np);
+
                         selected.clear();
+
                         draw_all();
+
+                        refresh();
                     }
                     break;
                 }
@@ -312,7 +319,11 @@ void Graphics::activity()
                         g->set_label(selected[0], event.key.keysym.sym);
 
                     selected.clear();
+
                     draw_all();
+
+                    refresh();
+
                     break;
                 }
                 }
@@ -329,6 +340,8 @@ void Graphics::activity()
                     SDL_GetWindowSize(window, &window_width, &window_height);
 
                     draw_all();
+
+                    refresh();
 
                     break;
                 }

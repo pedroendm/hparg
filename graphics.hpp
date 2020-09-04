@@ -4,7 +4,7 @@
 
 class Graphics {
     public:
-        static void setup(Graph* graph);
+        static bool init(Graph& graph);
         static void activity();
         static void close();
 };
