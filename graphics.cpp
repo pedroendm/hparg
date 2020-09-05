@@ -32,6 +32,18 @@ static char button_pressed = 0;
 // The set of selected nodes
 static std::vector<Node *> selected;
 
+// Find closest point in the circunference with center (c_x, c_y) and radius c_r to a given point (p_x, p_y)
+static inline void find_closest_point_in_circunference_to_given_point(double c_x, double c_y, double c_r, double p_x, double p_y, double& s_x, double& s_y)
+{
+    double vX = p_x - c_x;
+    double vY = p_y - c_y;
+
+    double magV = sqrt(vX * vX + vY * vY);
+
+    s_x = c_x + ((vX / magV) * c_r);
+    s_y = c_y + ((vY / magV) * c_r);
+}
+
 // SELECTED SET
 
 static inline void add_to_selected(Node *np)
@@ -56,26 +68,59 @@ static inline void draw_node(Node *np, int r, int g, int b, int a)
 static inline void draw_arc(Node *f, Node *t, int r, int g, int b, int a)
 {
     // Close point in the frontier of the node f to the center of the node t
-    double vXf = t->x - f->x;
-    double vYf = t->y - f->y;
-
-    double magVf = sqrt(vXf * vXf + vYf * vYf);
-
-    double pf_x = f->x + ((vXf / magVf) * f->r);
-    double pf_y = f->y + ((vYf / magVf) * f->r);
+    double pf_x, pf_y;
+    find_closest_point_in_circunference_to_given_point(f->x, f->y, f->r, t->x, t->y, pf_x, pf_y);
 
     // Close point in the frontier of the node t to the center of the node f
-    double vXt = f->x - t->x;
-    double vYt = f->y - t->y;
-    double magVt = sqrt(vXt * vXt + vYt * vYt);
-
-    double pt_x = t->x + ((vXt / magVt) * t->r);
-    double pt_y = t->y + ((vYt / magVt) * t->r);
+    double pt_x, pt_y;
+    find_closest_point_in_circunference_to_given_point(t->x, t->y, t->r, f->x, f->y, pt_x, pt_y);
 
     // Draw line
     lineRGBA(renderer, pf_x, pf_y, pt_x, pt_y, r, g, b, a);
 
-    // TODO: Finish arrow shape
+    /* Draw arrow 
+                    \
+                      \
+                        \ <-w->
+                          \
+                            \
+         -----------k-<-l->-pt
+
+        l = dist(k, pt) is adjustable
+        w is also adjustable
+    */
+    double m = (pt_y - pf_y) / (pt_x - pf_x);
+    double b_ = pf_y - pf_x * m;
+    
+    double l = 20.0;
+    double theta_rad = atan(m);
+    double delta_x = l * cos(theta_rad);
+
+    double k_x;
+    if(pf_x >= pt_x)
+        k_x = pt_x + delta_x;
+    else
+        k_x = pt_x - delta_x;
+
+    double k_y = m * k_x + b_;
+    
+    double m_k = -1 / m;
+    double b_k = k_y - k_x * m_k;
+
+    double w = 25;
+    double r_k_sq = w * w - l * l;
+
+    double aprim = 1 + m_k * m_k;
+    double bprim = 2 * m_k * (b_k - k_y) - 2 * k_x;
+    double cprim = (k_x * k_x) + ((b_k - k_y) * (b_k - k_y)) - r_k_sq;
+
+    double delta = (bprim * bprim) - 4 * aprim * cprim;
+
+    double k1_x = (-bprim + sqrt(delta)) / (2 * aprim);
+    double k2_x = (-bprim - sqrt(delta)) / (2 * aprim);
+
+    lineRGBA(renderer, k1_x, k1_x * m_k + b_k, pt_x, pt_y, r, g, b, a);
+    lineRGBA(renderer, k2_x, k2_x * m_k + b_k, pt_x, pt_y, r, g, b, a);
 }
 
 static inline void draw_graph()
